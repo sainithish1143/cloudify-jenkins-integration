@@ -26,16 +26,6 @@ logs/                                  # Runtime logs, ignored by Git
 
 The runner includes request validation, Cloudify credential validation, blueprint/input path validation, retry with backoff, execution polling, timeout handling, idempotency controls, dry-run support, secret masking, per-run log file, JSON summary, and non-zero exit codes for Jenkins failures.
 
-## Commit this repo
-
-```bash
-git init
-git add .
-git commit -m "Add Cloudify Jenkins lifecycle automation"
-git branch -M main
-git remote add origin https://github.com/<your-user-or-org>/cloudify-jenkins-lifecycle.git
-git push -u origin main
-```
 
 ## Configure Jenkins E2E
 
@@ -55,7 +45,7 @@ CFY_API_VERSION=v3.1
 CFY_INSECURE=true
 
 ENABLE_JENKINS_GIT_JOB=true
-JENKINS_GIT_REPO_URL=https://github.com/<your-user-or-org>/cloudify-jenkins-lifecycle.git
+JENKINS_GIT_REPO_URL=https://github.com/<your-user-or-org>/cloudify-jenkins-integration.git
 JENKINS_GIT_BRANCH=main
 DEFAULT_REQUEST_FILE=requests/hello-dev-install.yaml
 ```
