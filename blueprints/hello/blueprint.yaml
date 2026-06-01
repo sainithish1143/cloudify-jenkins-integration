@@ -1,0 +1,22 @@
+tosca_definitions_version: cloudify_dsl_1_4
+
+description: Hello Cloudify lifecycle demo blueprint
+
+imports:
+  - cloudify/types/types.yaml
+
+node_templates:
+  hello:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: scripts/create.sh
+        configure:
+          implementation: scripts/configure.sh
+        start:
+          implementation: scripts/start.sh
+        stop:
+          implementation: scripts/stop.sh
+        delete:
+          implementation: scripts/delete.sh

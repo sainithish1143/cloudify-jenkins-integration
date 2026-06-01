@@ -1,0 +1,21 @@
+operation: uninstall
+manager_url: ${CFY_MANAGER_URL}
+username: ${CFY_USERNAME}
+password: ${CFY_PASSWORD}
+tenant: ${CFY_TENANT:-default_tenant}
+api_version: ${CFY_API_VERSION:-v3.1}
+insecure: true
+blueprint_id: hello-jenkins-bp
+deployment_id: hello-jenkins-dev
+wait: true
+delete_deployment: true
+delete_blueprint: false
+request_timeout_sec: 60
+execution_timeout_sec: 3600
+poll_interval_sec: 10
+
+# Production controls
+retry_count: 5
+retry_backoff_sec: 2
+log_level: INFO
+log_dir: logs

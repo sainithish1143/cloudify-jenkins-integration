@@ -1,0 +1,8 @@
+workflow-aggregator
+credentials
+plain-credentials
+credentials-binding
+job-dsl
+git
+pipeline-stage-view
+ws-cleanup

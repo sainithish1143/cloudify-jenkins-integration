@@ -1,0 +1,26 @@
+services:
+  jenkins-cloudify:
+    build:
+      context: .
+      dockerfile: jenkins/Dockerfile
+    image: cloudify-jenkins-e2e:latest
+    container_name: cloudify-jenkins-e2e
+    restart: unless-stopped
+    env_file:
+      - .env.jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # Mount the lifecycle implementation into Jenkins.
+      # Jenkins job executes the same scripts/cloudify_lifecycle.py used by GitOps.
+      - .:/opt/cloudify-lifecycle
+    networks:
+      - cloudify-jenkins-net
+
+volumes:
+  jenkins_home:
+
+networks:
+  cloudify-jenkins-net:
