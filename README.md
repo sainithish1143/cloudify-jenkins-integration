@@ -256,3 +256,14 @@ cloudify-envops-git-polling
 ```
 
 See `docs/JENKINS_ENVOPS_E2E.md`.
+
+## Jenkins/GitOps consistency note
+
+This Jenkins package follows the same behavior as the GitOps package:
+
+- Deployment YAML commit creates/reconciles the Cloudify environment.
+- Operation YAML commit executes a Cloudify workflow.
+- Input YAML alone is data-only and does not execute a workflow.
+- Deployment YAML deletion removes the Cloudify environment based on the deployment policy.
+
+For this demo, `deployments/hello-dev.yaml` uses `deletion_policy: delete_only` because the sample blueprint/environment may not expose a Cloudify `uninstall` workflow. Do not use `operations/*uninstall*.yaml` unless your blueprint explicitly provides that workflow.

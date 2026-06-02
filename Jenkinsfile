@@ -26,11 +26,24 @@ pipeline {
                 sh '''
                     set -e
                     AFTER=$(git rev-parse HEAD)
-                    BEFORE=${GIT_PREVIOUS_SUCCESSFUL_COMMIT:-}
-                    if [ -z "$BEFORE" ]; then
-                      BEFORE=$(git rev-list --max-parents=0 HEAD)
+                    STATE_FILE="$WORKSPACE/.last_reconciled_sha"
+
+                    if [ ! -f "$STATE_FILE" ]; then
+                      echo "$AFTER" > "$STATE_FILE"
+                      echo "Initial Jenkins baseline captured at $AFTER. No Cloudify action is taken on first run."
+                      echo "Push a new commit under deployments/ or operations/ to trigger reconciliation."
+                      exit 0
                     fi
+
+                    BEFORE=$(cat "$STATE_FILE")
+                    if [ "$BEFORE" = "$AFTER" ]; then
+                      echo "No new commit since last reconciliation: $AFTER"
+                      exit 0
+                    fi
+
+                    echo "Reconciling Cloudify envops from $BEFORE to $AFTER"
                     python3 scripts/gitops_reconcile.py --before "$BEFORE" --after "$AFTER" --mode "$GITOPS_MULTI_DEPLOYMENT_MODE"
+                    echo "$AFTER" > "$STATE_FILE"
                 '''
             }
         }
