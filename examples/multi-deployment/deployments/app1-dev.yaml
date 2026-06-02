@@ -1,0 +1,33 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyDeployment
+metadata:
+  name: app1-dev
+  environment: dev
+  owner: platform-team
+spec:
+  enabled: true
+  manager:
+    tenant: default_tenant
+  blueprint:
+    id: hello-shared-bp
+    source: blueprints/hello
+    application_file: blueprint.yaml
+  deployment:
+    id: app1-dev
+    inputs:
+      - inputs/hello/app1-dev.yaml
+    inline_inputs: {}
+  policies:
+    create_only_on_deployment_commit: true
+    deletion_policy: auto_uninstall_delete
+    uninstall_workflow: uninstall
+    delete_blueprint_on_delete: false
+  execution:
+    request_timeout_sec: 60
+    execution_timeout_sec: 3600
+    poll_interval_sec: 10
+    retry_count: 5
+    retry_backoff_sec: 5
+  logging:
+    level: INFO
+    log_dir: logs

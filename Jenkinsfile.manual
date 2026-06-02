@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    parameters {
+        string(name: 'DEPLOYMENT_FILE', defaultValue: 'deployments/hello-dev.yaml', description: 'Deployment desired-state YAML')
+        choice(name: 'ACTION', choices: ['create-environment', 'execute-workflow', 'uninstall', 'delete-environment'], description: 'Cloudify action')
+        string(name: 'WORKFLOW', defaultValue: 'install', description: 'Workflow for execute-workflow/uninstall')
+        string(name: 'PARAMETERS_FILE', defaultValue: '', description: 'Optional workflow parameters YAML')
+        booleanParam(name: 'INJECT_INPUTS_AS_OPERATION_KWARGS', defaultValue: false, description: 'Inject deployment inputs as operation_kwargs')
+    }
+    environment {
+        CFY_MANAGER_URL = credentials('cfy-manager-url')
+        CFY_USERNAME = credentials('cfy-username')
+        CFY_PASSWORD = credentials('cfy-password')
+        CFY_TENANT = credentials('cfy-tenant')
+        CFY_API_VERSION = 'v3.1'
+        CFY_INSECURE = 'true'
+    }
+    stages {
+        stage('Checkout') { steps { checkout scm } }
+        stage('Install dependencies') {
+            steps { sh 'python3 -m pip install -r requirements.txt --break-system-packages || python3 -m pip install -r requirements.txt' }
+        }
+        stage('Run Cloudify action') {
+            steps {
+                sh '''
+                    set -e
+                    EXTRA=""
+                    if [ "$INJECT_INPUTS_AS_OPERATION_KWARGS" = "true" ]; then
+                      EXTRA="$EXTRA --inject-inputs-as-operation-kwargs"
+                    fi
+                    if [ -n "$PARAMETERS_FILE" ]; then
+                      EXTRA="$EXTRA --parameters-file $PARAMETERS_FILE"
+                    fi
+                    python3 scripts/manual_lifecycle_from_deployment.py \
+                      --deployment "$DEPLOYMENT_FILE" \
+                      --action "$ACTION" \
+                      --workflow "$WORKFLOW" \
+                      $EXTRA
+                '''
+            }
+        }
+    }
+    post { always { archiveArtifacts artifacts: 'logs/**', allowEmptyArchive: true } }
+}

@@ -1,60 +1,41 @@
 pipeline {
-  agent any
-
-  parameters {
-    choice(name: 'LIFECYCLE_OPERATION', choices: ['install', 'update', 'uninstall', 'delete'], description: 'Cloudify lifecycle operation')
-    string(name: 'REQUEST_FILE', defaultValue: 'requests/hello-dev-install.yaml', description: 'Lifecycle request YAML')
-  }
-
-  environment {
-    CFY_MANAGER_URL = credentials('CFY_MANAGER_URL')
-    CFY_USERNAME    = credentials('CFY_USERNAME')
-    CFY_PASSWORD    = credentials('CFY_PASSWORD')
-    CFY_TENANT      = credentials('CFY_TENANT')
-    CFY_API_VERSION = 'v3.1'
-    CFY_INSECURE    = 'true'
-  }
-
-  stages {
-    stage('Checkout') {
-      steps { checkout scm }
+    agent any
+    triggers {
+        pollSCM('H/2 * * * *')
     }
-
-    stage('Prepare Python') {
-      steps {
-        sh '''
-          set -euo pipefail
-          python3 -m venv .venv
-          . .venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-        '''
-      }
+    environment {
+        CFY_MANAGER_URL = credentials('cfy-manager-url')
+        CFY_USERNAME = credentials('cfy-username')
+        CFY_PASSWORD = credentials('cfy-password')
+        CFY_TENANT = credentials('cfy-tenant')
+        CFY_API_VERSION = 'v3.1'
+        CFY_INSECURE = 'true'
+        GITOPS_MULTI_DEPLOYMENT_MODE = 'all'
     }
-
-    stage('Invoke Cloudify Lifecycle') {
-      steps {
-        sh '''
-          set -euo pipefail
-          . .venv/bin/activate
-
-          case "${LIFECYCLE_OPERATION}" in
-            install)   REQ="requests/hello-dev-install.yaml" ;;
-            update)    REQ="requests/hello-dev-update.yaml" ;;
-            uninstall) REQ="requests/hello-dev-uninstall.yaml" ;;
-            delete)    REQ="${REQUEST_FILE}" ;;
-            *)         REQ="${REQUEST_FILE}" ;;
-          esac
-
-          python3 scripts/cloudify_lifecycle.py --request "${REQ}"
-        '''
-      }
+    stages {
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+        stage('Install dependencies') {
+            steps {
+                sh 'python3 -m pip install -r requirements.txt --break-system-packages || python3 -m pip install -r requirements.txt'
+            }
+        }
+        stage('Reconcile Cloudify envops changes') {
+            steps {
+                sh '''
+                    set -e
+                    AFTER=$(git rev-parse HEAD)
+                    BEFORE=${GIT_PREVIOUS_SUCCESSFUL_COMMIT:-}
+                    if [ -z "$BEFORE" ]; then
+                      BEFORE=$(git rev-list --max-parents=0 HEAD)
+                    fi
+                    python3 scripts/gitops_reconcile.py --before "$BEFORE" --after "$AFTER" --mode "$GITOPS_MULTI_DEPLOYMENT_MODE"
+                '''
+            }
+        }
     }
-  }
-
-  post {
-    always {
-      archiveArtifacts artifacts: 'requests/*.yaml', fingerprint: true
+    post {
+        always { archiveArtifacts artifacts: 'logs/**', allowEmptyArchive: true }
     }
-  }
 }

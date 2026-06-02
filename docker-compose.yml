@@ -1,53 +1,11 @@
 services:
-  cloudify-lifecycle:
+  cloudify-gitops-runner:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cloudify-lifecycle-runner:latest
-    container_name: cloudify-lifecycle-runner
+    image: cloudify-gitops-desiredstate-runner:latest
     env_file:
       - .env
-    working_dir: /workspace
-    volumes:
-      # Keep repo mounted so you can edit blueprints/inputs/requests without rebuilding the image.
-      - .:/workspace
-    command: ["--request", "${CFY_REQUEST_FILE:-requests/hello-dev-install.yaml}"]
-
-  cloudify-install:
-    image: cloudify-lifecycle-runner:latest
-    profiles: ["install"]
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    working_dir: /workspace
     volumes:
       - .:/workspace
-    command: ["--request", "requests/hello-dev-install.yaml"]
-
-  cloudify-update:
-    image: cloudify-lifecycle-runner:latest
-    profiles: ["update"]
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
     working_dir: /workspace
-    volumes:
-      - .:/workspace
-    command: ["--request", "requests/hello-dev-update.yaml"]
-
-  cloudify-uninstall:
-    image: cloudify-lifecycle-runner:latest
-    profiles: ["uninstall"]
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    working_dir: /workspace
-    volumes:
-      - .:/workspace
-    command: ["--request", "requests/hello-dev-uninstall.yaml"]

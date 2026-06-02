@@ -1,0 +1,51 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyDeployment
+
+metadata:
+  name: hello-dev
+  environment: dev
+  owner: platform-team
+
+spec:
+  enabled: true
+
+  manager:
+    tenant: default_tenant
+
+  blueprint:
+    id: hello-gitops-bp
+    source: blueprints/hello
+    application_file: blueprint.yaml
+
+  deployment:
+    id: hello-gitops-dev
+    inputs:
+      - inputs/hello/dev.yaml
+    inline_inputs: {}
+
+  policies:
+    # Deployment commit creates/registers the Cloudify environment only.
+    create_only_on_deployment_commit: true
+
+    # For production, use 'manual' and require an explicit uninstall operation.
+    # For demos, auto_uninstall_delete lets a git rm deployments/*.yaml trigger uninstall + delete.
+    deletion_policy: auto_uninstall_delete
+    uninstall_workflow: uninstall
+    delete_blueprint_on_delete: false
+
+    # Demo safety: recreate environment when this deployment file is committed.
+    # This prevents stale Cloudify deployment plans from older blueprint versions.
+    # For production, set this to false and use a controlled deployment-update strategy.
+    force_recreate_environment: true
+    recreate_uninstall_first: false
+
+  execution:
+    request_timeout_sec: 60
+    execution_timeout_sec: 3600
+    poll_interval_sec: 10
+    retry_count: 5
+    retry_backoff_sec: 5
+
+  logging:
+    level: INFO
+    log_dir: logs

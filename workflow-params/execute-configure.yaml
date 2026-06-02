@@ -1,0 +1,5 @@
+operation: cloudify.interfaces.lifecycle.configure
+node_ids:
+  - hello_gitops_node
+run_by_dependency_order: true
+allow_kwargs_override: true

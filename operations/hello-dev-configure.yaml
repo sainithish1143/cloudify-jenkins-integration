@@ -1,0 +1,24 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyOperation
+
+metadata:
+  name: hello-dev-configure
+
+spec:
+  deployment_ref: deployments/hello-dev.yaml
+  workflow: execute_operation
+  wait: true
+  ensure_environment: true
+  timeout_sec: 3600
+
+  parameters:
+    operation: cloudify.interfaces.lifecycle.configure
+    node_ids:
+      - hello_gitops_node
+    run_by_dependency_order: true
+    allow_kwargs_override: true
+
+  # Demo helper: inject latest values from inputs/hello/dev.yaml as operation_kwargs
+  # so changed Git input values appear in Cloudify execution logs.
+  parameter_policy:
+    inject_inputs_as_operation_kwargs: true

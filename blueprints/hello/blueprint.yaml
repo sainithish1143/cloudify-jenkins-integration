@@ -1,22 +1,81 @@
-tosca_definitions_version: cloudify_dsl_1_4
+tosca_definitions_version: cloudify_dsl_1_5
 
-description: Hello Cloudify lifecycle demo blueprint
+description: >
+  Demo Cloudify blueprint for GitOps/Jenkins lifecycle automation.
+  It accepts user-provided deployment inputs and prints them during workflow execution.
 
 imports:
   - cloudify/types/types.yaml
 
+inputs:
+  customer_name:
+    type: string
+    description: Name of the customer or demo audience.
+    default: Wind River Customer
+
+  application_name:
+    type: string
+    description: Application/service name to deploy.
+    default: hello-service
+
+  environment:
+    type: string
+    description: Target environment.
+    default: dev
+
+  message:
+    type: string
+    description: Message to show in execution logs.
+    default: Hello from Cloudify GitOps desired-state demo
+
+  replicas:
+    type: integer
+    description: Desired replica count for demo logging.
+    default: 1
+
+node_types:
+  cloudify.nodes.GitOpsDemo:
+    derived_from: cloudify.nodes.Root
+    properties:
+      customer_name:
+        type: string
+        default: Wind River Customer
+      application_name:
+        type: string
+        default: hello-service
+      environment:
+        type: string
+        default: dev
+      message:
+        type: string
+        default: Hello from Cloudify GitOps desired-state demo
+      replicas:
+        type: integer
+        default: 1
+
 node_templates:
-  hello:
-    type: cloudify.nodes.Root
+  hello_gitops_node:
+    type: cloudify.nodes.GitOpsDemo
+    properties:
+      customer_name: { get_input: customer_name }
+      application_name: { get_input: application_name }
+      environment: { get_input: environment }
+      message: { get_input: message }
+      replicas: { get_input: replicas }
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: scripts/create.sh
+          implementation: scripts/lifecycle.py
+          executor: central_deployment_agent
         configure:
-          implementation: scripts/configure.sh
+          implementation: scripts/lifecycle.py
+          executor: central_deployment_agent
         start:
-          implementation: scripts/start.sh
+          implementation: scripts/lifecycle.py
+          executor: central_deployment_agent
         stop:
-          implementation: scripts/stop.sh
+          implementation: scripts/lifecycle.py
+          executor: central_deployment_agent
         delete:
-          implementation: scripts/delete.sh
+          implementation: scripts/lifecycle.py
+          executor: central_deployment_agent

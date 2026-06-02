@@ -1,8 +1,7 @@
 workflow-aggregator
-credentials
-plain-credentials
-credentials-binding
-job-dsl
 git
+job-dsl
+credentials-binding
+plain-credentials
+matrix-auth
 pipeline-stage-view
-ws-cleanup
