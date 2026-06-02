@@ -1,0 +1,16 @@
+# Optional operation intent. Rename this file to .yaml only if the Cloudify
+# deployment exposes an uninstall workflow. For desired-state deletion,
+# prefer deleting deployments/wr-demo-jenkins-hello.yaml from Git.
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyOperation
+
+metadata:
+  name: wr-demo-jenkins-hello-uninstall
+
+spec:
+  deployment_ref: deployments/wr-demo-jenkins-hello.yaml
+  workflow: uninstall
+  wait: true
+  ensure_environment: false
+  timeout_sec: 3600
+  parameters: {}
