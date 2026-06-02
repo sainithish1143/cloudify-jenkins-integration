@@ -296,6 +296,14 @@ class CloudifyClient:
         return zip_path
 
     def upload_blueprint(self) -> None:
+        # Idempotent upload for GitOps/Jenkins repeated runs.
+        # Cloudify returns 409 if the blueprint ID already exists. In this
+        # environment+operation model, existing blueprint is safe to reuse;
+        # major blueprint changes should use a new blueprint_id or a controlled
+        # force recreate/update policy.
+        if self.blueprint_exists(self.req.blueprint_id):
+            self.logger.info("Blueprint '%s' already exists; skipping upload", self.req.blueprint_id)
+            return
         zip_path = self.create_blueprint_zip()
         self.logger.info("Uploading blueprint '%s' from %s", self.req.blueprint_id, zip_path)
         try:
@@ -303,6 +311,9 @@ class CloudifyClient:
                 files = {"blueprint_archive": (zip_path.name, handle, "application/zip")}
                 params = {"application_file_name": self.req.application_file}
                 response = self._request("PUT", f"/blueprints/{self.req.blueprint_id}", params=params, files=files, timeout=max(self.req.request_timeout_sec, 120))
+                if response.status_code == 409:
+                    self.logger.info("Blueprint '%s' already exists; treating upload as idempotent success", self.req.blueprint_id)
+                    return
                 self._ensure_ok(response, {200, 201})
         finally:
             shutil.rmtree(zip_path.parent, ignore_errors=True)
