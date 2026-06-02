@@ -1,9 +1,13 @@
 pipeline {
     agent any
+    options {
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
     parameters {
         string(name: 'DEPLOYMENT_FILE', defaultValue: 'deployments/hello-dev.yaml', description: 'Deployment desired-state YAML')
-        choice(name: 'ACTION', choices: ['create-environment', 'execute-workflow', 'uninstall', 'delete-environment'], description: 'Cloudify action')
-        string(name: 'WORKFLOW', defaultValue: 'install', description: 'Workflow for execute-workflow/uninstall')
+        choice(name: 'ACTION', choices: ['create-environment', 'execute-workflow', 'delete-environment'], description: 'Cloudify action')
+        string(name: 'WORKFLOW', defaultValue: 'install', description: 'Workflow for execute-workflow, e.g. install, execute_operation, heal, scale, custom workflow')
         string(name: 'PARAMETERS_FILE', defaultValue: '', description: 'Optional workflow parameters YAML')
         booleanParam(name: 'INJECT_INPUTS_AS_OPERATION_KWARGS', defaultValue: false, description: 'Inject deployment inputs as operation_kwargs')
     }

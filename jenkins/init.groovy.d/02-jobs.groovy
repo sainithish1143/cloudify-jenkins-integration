@@ -24,10 +24,11 @@ String commonEnvBlock = '''
 String manualPipeline = '''
 pipeline {
     agent any
+    options { disableConcurrentBuilds(); buildDiscarder(logRotator(numToKeepStr: '20')) }
     parameters {
         string(name: 'DEPLOYMENT_FILE', defaultValue: "''' + defaultDeployment + '''", description: 'Deployment desired-state YAML')
-        choice(name: 'ACTION', choices: ['create-environment', 'execute-workflow', 'uninstall', 'delete-environment'], description: 'Cloudify action')
-        string(name: 'WORKFLOW', defaultValue: "''' + defaultWorkflow + '''", description: 'Workflow for execute-workflow/uninstall, e.g. install, uninstall, execute_operation, heal, scale, custom workflow')
+        choice(name: 'ACTION', choices: ['create-environment', 'execute-workflow', 'delete-environment'], description: 'Cloudify action')
+        string(name: 'WORKFLOW', defaultValue: "''' + defaultWorkflow + '''", description: 'Workflow for execute-workflow, e.g. install, execute_operation, heal, scale, custom workflow')
         string(name: 'PARAMETERS_FILE', defaultValue: '', description: 'Optional workflow parameters YAML, e.g. workflow-params/execute-configure.yaml')
         booleanParam(name: 'INJECT_INPUTS_AS_OPERATION_KWARGS', defaultValue: false, description: 'Inject deployment input YAML values as operation_kwargs')
     }
@@ -81,6 +82,7 @@ pipeline {
 String gitPipeline = '''
 pipeline {
     agent any
+    options { disableConcurrentBuilds(); buildDiscarder(logRotator(numToKeepStr: '20')) }
     triggers {
         pollSCM("''' + pollSchedule + '''")
     }

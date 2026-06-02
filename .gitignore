@@ -1,7 +1,8 @@
 .env
-.env.*
-!.env.example
+.env.jenkins
 logs/
 __pycache__/
 *.pyc
-.venv/
+.DS_Store
+.vscode/
+.idea/

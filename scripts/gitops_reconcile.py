@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""GitOps reconciler for Cloudify environment + operation intent model.
+"""Trigger-agnostic reconciler for Cloudify envops model.
 
-Production model:
-  deployments/*.yaml added/modified  -> create/register Cloudify environment only
-  operations/*.yaml added/modified   -> execute the requested Cloudify workflow
-  deployments/*.yaml deleted         -> uninstall/delete based on deletion policy
-  operations/*.yaml deleted          -> no Cloudify action; removes intent from Git
+Same script is used by GitHub Actions and Jenkins.
 
-This script is trigger-agnostic and can be used by GitHub Actions or Jenkins.
+Model:
+  deployments/*.yaml added/modified -> create/register Cloudify environment only
+  operations/*.yaml added/modified  -> execute requested workflow on deployment
+  deployments/*.yaml deleted        -> delete environment based on policy
+  inputs/*.yaml only                -> no action; data is consumed by operations
 """
 from __future__ import annotations
 
@@ -15,18 +15,27 @@ import argparse
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import yaml
 
 
-def _strip(value: Optional[str]) -> str:
-    return (value or "").strip()
+def _strip(value: Optional[Any]) -> str:
+    return ("" if value is None else str(value)).strip()
+
+
+def _bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def setup_logging(log_dir: Path, run_id: str, level: str = "INFO") -> logging.Logger:
@@ -73,21 +82,19 @@ def get_changed_files(repo: Path, before: str, after: str) -> List[Tuple[str, st
         if not line.strip():
             continue
         parts = line.split("\t")
-        raw_status = parts[0]
-        status = raw_status[0]
+        status = parts[0][0]
         path = parts[-1]
         changes.append((status, path))
     return changes
 
 
-def merge_yaml_files(repo: Path, files: List[str]) -> Dict[str, Any]:
+def merge_yaml_files(repo: Path, files: Iterable[str]) -> Dict[str, Any]:
     merged: Dict[str, Any] = {}
     for rel in files or []:
         path = repo / rel
         if not path.is_file():
             raise FileNotFoundError(f"Input file referenced by deployment was not found: {rel}")
-        data = load_yaml_file(path)
-        merged.update(data)
+        merged.update(load_yaml_file(path))
     return merged
 
 
@@ -97,12 +104,9 @@ def expand_env_vars(obj: Any) -> Any:
     if isinstance(obj, list):
         return [expand_env_vars(v) for v in obj]
     if isinstance(obj, str):
-        import re
         pattern = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(:-([^}]*))?\}")
-        def repl(match):
-            name = match.group(1)
-            default = match.group(3) or ""
-            return _strip(os.getenv(name, default))
+        def repl(match: re.Match[str]) -> str:
+            return _strip(os.getenv(match.group(1), match.group(3) or ""))
         return pattern.sub(repl, obj).strip()
     return obj
 
@@ -113,9 +117,11 @@ def validate_deployment_spec(spec: Dict[str, Any], source: str) -> None:
     body = spec.get("spec") or {}
     if not isinstance(body, dict):
         raise ValueError(f"{source}: spec must be an object")
-    if not _strip(((body.get("deployment") or {}).get("id")) or ((spec.get("metadata") or {}).get("name"))):
+    deployment = body.get("deployment") or {}
+    blueprint = body.get("blueprint") or {}
+    if not _strip(deployment.get("id") or (spec.get("metadata") or {}).get("name")):
         raise ValueError(f"{source}: spec.deployment.id or metadata.name is required")
-    if not _strip(((body.get("blueprint") or {}).get("source"))):
+    if not _strip(blueprint.get("source")):
         raise ValueError(f"{source}: spec.blueprint.source is required")
 
 
@@ -158,8 +164,11 @@ def deployment_to_request(spec: Dict[str, Any], operation: str, repo: Path, extr
         "delete_deployment": False,
         "delete_blueprint": False,
         "dry_run": body.get("dry_run", False),
+        "ensure_environment": False,
         "force_recreate_environment": bool(policies.get("force_recreate_environment", False)),
         "recreate_uninstall_first": bool(policies.get("recreate_uninstall_first", False)),
+        "force_upload_blueprint": bool(policies.get("force_upload_blueprint", False)),
+        "wait_for_existing_execution": bool(policies.get("wait_for_existing_execution", True)),
         "log_level": logging_cfg.get("level", "INFO"),
         "log_dir": logging_cfg.get("log_dir", "logs"),
     }
@@ -186,8 +195,8 @@ def operation_to_request(op_spec: Dict[str, Any], repo: Path) -> Dict[str, Any]:
     parameters = spec.get("parameters") or {}
     if not isinstance(parameters, dict):
         raise ValueError("CloudifyOperation spec.parameters must be an object")
+    parameters = dict(parameters)  # make mutable copy
 
-    # Optional helper for execute_operation: inject latest Git input values as operation_kwargs.
     policy = spec.get("parameter_policy") or {}
     if policy.get("inject_inputs_as_operation_kwargs") is True:
         dep_body = dep_spec.get("spec") or {}
@@ -235,7 +244,7 @@ def build_actions(repo: Path, before: str, changes: List[Tuple[str, str]], logge
                 policies = ((dep_spec.get("spec") or {}).get("policies") or {})
                 deletion_policy = _strip(policies.get("deletion_policy") or "manual")
                 if deletion_policy == "manual":
-                    raise RuntimeError(f"{path} was deleted but deletion_policy=manual. Commit an explicit uninstall operation first or set deletion_policy=auto_uninstall_delete/delete_only.")
+                    raise RuntimeError(f"{path} was deleted but deletion_policy=manual. Use explicit workflow operation or set deletion_policy=delete_only/auto_uninstall_delete.")
                 if deletion_policy == "auto_uninstall_delete":
                     extra = {
                         "operation": "uninstall",
@@ -253,7 +262,6 @@ def build_actions(repo: Path, before: str, changes: List[Tuple[str, str]], logge
             elif status in {"A", "M", "R", "C"}:
                 dep_spec = load_yaml_file(repo / path)
                 actions.append((path, "create_environment", deployment_to_request(dep_spec, "create_environment", repo)))
-
         elif path.startswith("operations/") and path.endswith((".yaml", ".yml")):
             if status == "D":
                 logger.info("Operation intent file removed: %s. No Cloudify action is taken for operation deletion.", path)
@@ -270,7 +278,6 @@ def reconcile(repo: Path, before: str, after: str, mode: str, dry_run: bool, log
     if not candidate_changes:
         logger.info("No deployment or operation intent changes detected. Nothing to do.")
         return 0
-
     actions = build_actions(repo, before, candidate_changes, logger)
     if not actions:
         logger.info("No executable Cloudify actions generated.")
@@ -278,10 +285,8 @@ def reconcile(repo: Path, before: str, after: str, mode: str, dry_run: bool, log
     if mode == "first" and len(actions) > 1:
         actions = actions[:1]
     elif mode == "fail" and len(actions) > 1:
-        raise RuntimeError(f"Multiple actions detected but mode=fail: {[(a,b) for a,b,_ in actions]}")
+        raise RuntimeError(f"Multiple actions detected but mode=fail: {[(a, b) for a, b, _ in actions]}")
 
-    # Always create/register environments before executing workflows in the same commit.
-    # This supports commits that add a deployment file and an operation intent together.
     priority = {"create_environment": 0, "execute_workflow": 1, "uninstall": 2, "delete_environment": 3}
     actions = sorted(actions, key=lambda item: priority.get(item[1], 99))
 
@@ -315,13 +320,13 @@ def main() -> int:
     repo = Path.cwd()
     run_id = uuid.uuid4().hex[:12]
     logger = setup_logging(repo / "logs", run_id, os.getenv("GITOPS_LOG_LEVEL", "INFO"))
-    logger.info("GitOps envops reconcile run_id=%s before=%s after=%s mode=%s", run_id, args.before, args.after, args.mode)
+    logger.info("Cloudify envops reconcile run_id=%s before=%s after=%s mode=%s", run_id, args.before, args.after, args.mode)
     try:
         return reconcile(repo, args.before, args.after, args.mode, args.dry_run, logger)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("GitOps envops reconcile failed: %s", exc)
+        logger.exception("Cloudify envops reconcile failed: %s", exc)
         return 1
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

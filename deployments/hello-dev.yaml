@@ -24,20 +24,22 @@ spec:
     inline_inputs: {}
 
   policies:
-    # Deployment commit creates/registers the Cloudify environment only.
+    # deployments/*.yaml commit creates/registers the Cloudify environment only.
     create_only_on_deployment_commit: true
 
-    # For production, set this to auto_uninstall_delete only when the blueprint exposes an uninstall workflow.
-    # For this demo, delete_only keeps Jenkins and GitOps behavior consistent: git rm deployments/*.yaml deletes the Cloudify environment.
+    # Keep delete behavior identical for GitHub Actions and Jenkins.
+    # Delete deployments/hello-dev.yaml from Git to delete the Cloudify deployment.
+    # Use auto_uninstall_delete only for customer blueprints that expose an uninstall workflow.
     deletion_policy: delete_only
     uninstall_workflow: ""
     delete_blueprint_on_delete: false
 
-    # Demo safety: recreate environment when this deployment file is committed.
-    # This prevents stale Cloudify deployment plans from older blueprint versions.
-    # For production, set this to false and use a controlled deployment-update strategy.
-    force_recreate_environment: true
+    # Demo/repeated-test safety. For production, set both to false and use a
+    # controlled deployment update/migration workflow.
+    force_recreate_environment: false
+    force_upload_blueprint: false
     recreate_uninstall_first: false
+    wait_for_existing_execution: true
 
   execution:
     request_timeout_sec: 60
