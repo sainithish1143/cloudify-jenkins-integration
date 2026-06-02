@@ -1,0 +1,12 @@
+# Optional: rename to .yaml only if this deployment exposes an uninstall workflow.
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyOperation
+metadata:
+  name: wr-demo-jenkins-app1-uninstall
+spec:
+  deployment_ref: deployments/wr-demo-jenkins-app1.yaml
+  workflow: uninstall
+  wait: true
+  ensure_environment: false
+  timeout_sec: 3600
+  parameters: {}

@@ -16,8 +16,8 @@ Do not use `operations/*uninstall*.yaml` unless the Cloudify blueprint exposes a
 For this demo, deployment removal is done by deleting the deployment file:
 
 ```bash
-git rm deployments/hello-dev.yaml
-git commit -m "Remove hello dev Cloudify environment"
+git rm deployments/wr-demo-jenkins-hello.yaml
+git commit -m "Remove wr-demo-jenkins-hello Cloudify environment"
 git push
 ```
 
@@ -31,26 +31,26 @@ Then push commits one at a time:
 
 ```bash
 # Create/reconcile environment
-echo "# env $(date)" >> deployments/hello-dev.yaml
-git add deployments/hello-dev.yaml
-git commit -m "Jenkins create hello dev environment"
+echo "# env $(date)" >> deployments/wr-demo-jenkins-hello.yaml
+git add deployments/wr-demo-jenkins-hello.yaml
+git commit -m "Jenkins create wr-demo-jenkins-hello environment"
 git push
 
 # Execute install workflow
-echo "# install $(date)" >> operations/hello-dev-install.yaml
-git add operations/hello-dev-install.yaml
+echo "# install $(date)" >> operations/wr-demo-jenkins-hello-install.yaml
+git add operations/wr-demo-jenkins-hello-install.yaml
 git commit -m "Jenkins run install workflow"
 git push
 
 # Execute configure workflow with updated input data
 vi inputs/hello/dev.yaml
-echo "# configure $(date)" >> operations/hello-dev-configure.yaml
-git add inputs/hello/dev.yaml operations/hello-dev-configure.yaml
+echo "# configure $(date)" >> operations/wr-demo-jenkins-hello-configure.yaml
+git add inputs/hello/dev.yaml operations/wr-demo-jenkins-hello-configure.yaml
 git commit -m "Jenkins run configure with updated inputs"
 git push
 
 # Delete Cloudify environment
-git rm deployments/hello-dev.yaml
-git commit -m "Jenkins remove hello dev environment"
+git rm deployments/wr-demo-jenkins-hello.yaml
+git commit -m "Jenkins remove wr-demo-jenkins-hello environment"
 git push
 ```

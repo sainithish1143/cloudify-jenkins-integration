@@ -1,0 +1,18 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyOperation
+metadata:
+  name: wr-demo-jenkins-app2-configure
+spec:
+  deployment_ref: deployments/wr-demo-jenkins-app2.yaml
+  workflow: execute_operation
+  wait: true
+  ensure_environment: true
+  timeout_sec: 3600
+  parameters:
+    operation: cloudify.interfaces.lifecycle.configure
+    node_ids:
+    - hello_gitops_node
+    run_by_dependency_order: true
+    allow_kwargs_override: true
+  parameter_policy:
+    inject_inputs_as_operation_kwargs: true

@@ -1,0 +1,5 @@
+customer_name: "Demo Customer App1"
+application_name: "wr-demo-jenkins-app1-service"
+environment: "dev"
+message: "wr-demo-jenkins-app1 uses the shared hello blueprint with its own input file"
+replicas: 2

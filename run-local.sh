@@ -9,7 +9,7 @@ if [ -f .env ]; then
 fi
 
 ACTION="${1:-create-environment}"
-DEPLOYMENT_FILE="${2:-deployments/hello-dev.yaml}"
+DEPLOYMENT_FILE="${2:-deployments/wr-demo-jenkins-hello-dev.yaml}"
 WORKFLOW="${3:-install}"
 
 case "$ACTION" in

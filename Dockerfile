@@ -7,4 +7,4 @@ COPY requirements.txt /workspace/requirements.txt
 RUN pip install --no-cache-dir -r /workspace/requirements.txt
 COPY . /workspace
 ENTRYPOINT ["python3"]
-CMD ["scripts/manual_lifecycle_from_deployment.py", "--deployment", "deployments/hello-dev.yaml", "--action", "create-environment"]
+CMD ["scripts/manual_lifecycle_from_deployment.py", "--deployment", "deployments/wr-demo-jenkins-hello-dev.yaml", "--action", "create-environment"]

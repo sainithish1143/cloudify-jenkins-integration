@@ -1,7 +1,7 @@
 apiVersion: cloudify.windriver.com/v1
 kind: CloudifyDeployment
 metadata:
-  name: app1-dev
+  name: wr-demo-jenkins-hello
   environment: dev
   owner: platform-team
 spec:
@@ -9,19 +9,23 @@ spec:
   manager:
     tenant: default_tenant
   blueprint:
-    id: hello-shared-bp
+    id: wr-demo-jenkins-hello-bp
     source: blueprints/hello
     application_file: blueprint.yaml
   deployment:
-    id: app1-dev
+    id: wr-demo-jenkins-hello
     inputs:
-      - inputs/hello/app1-dev.yaml
+    - inputs/hello/dev.yaml
     inline_inputs: {}
   policies:
     create_only_on_deployment_commit: true
-    deletion_policy: auto_uninstall_delete
-    uninstall_workflow: uninstall
+    deletion_policy: delete_only
+    uninstall_workflow: ''
     delete_blueprint_on_delete: false
+    force_recreate_environment: false
+    force_upload_blueprint: false
+    recreate_uninstall_first: false
+    wait_for_existing_execution: true
   execution:
     request_timeout_sec: 60
     execution_timeout_sec: 3600

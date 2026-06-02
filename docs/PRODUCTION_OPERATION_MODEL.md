@@ -22,13 +22,13 @@ Examples:
 
 ```yaml
 spec:
-  deployment_ref: deployments/hello-dev.yaml
+  deployment_ref: deployments/wr-demo-jenkins-hello.yaml
   workflow: install
 ```
 
 ```yaml
 spec:
-  deployment_ref: deployments/hello-dev.yaml
+  deployment_ref: deployments/wr-demo-jenkins-hello.yaml
   workflow: execute_operation
   parameters:
     operation: cloudify.interfaces.lifecycle.configure

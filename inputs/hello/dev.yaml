@@ -1,5 +1,5 @@
 customer_name: "Demo Customer"
-application_name: "hello-gitops-service"
+application_name: "jenkins-hello-service"
 environment: "dev"
 message: "This value came from GitOps input file and is visible in Cloudify execution logs"
 replicas: 2

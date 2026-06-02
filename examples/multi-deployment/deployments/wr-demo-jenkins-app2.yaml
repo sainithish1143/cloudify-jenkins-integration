@@ -1,53 +1,37 @@
 apiVersion: cloudify.windriver.com/v1
 kind: CloudifyDeployment
-
 metadata:
-  name: hello-dev
+  name: wr-demo-jenkins-app2
   environment: dev
   owner: platform-team
-
 spec:
   enabled: true
-
   manager:
     tenant: default_tenant
-
   blueprint:
-    id: hello-gitops-bp
+    id: wr-demo-jenkins-hello-bp
     source: blueprints/hello
     application_file: blueprint.yaml
-
   deployment:
-    id: hello-gitops-dev
+    id: wr-demo-jenkins-app2
     inputs:
-      - inputs/hello/dev.yaml
+    - inputs/hello/wr-demo-jenkins-app2.yaml
     inline_inputs: {}
-
   policies:
-    # deployments/*.yaml commit creates/registers the Cloudify environment only.
     create_only_on_deployment_commit: true
-
-    # Keep delete behavior identical for GitHub Actions and Jenkins.
-    # Delete deployments/hello-dev.yaml from Git to delete the Cloudify deployment.
-    # Use auto_uninstall_delete only for customer blueprints that expose an uninstall workflow.
     deletion_policy: delete_only
-    uninstall_workflow: ""
+    uninstall_workflow: ''
     delete_blueprint_on_delete: false
-
-    # Demo/repeated-test safety. For production, set both to false and use a
-    # controlled deployment update/migration workflow.
     force_recreate_environment: false
     force_upload_blueprint: false
     recreate_uninstall_first: false
     wait_for_existing_execution: true
-
   execution:
     request_timeout_sec: 60
     execution_timeout_sec: 3600
     poll_interval_sec: 10
     retry_count: 5
     retry_backoff_sec: 5
-
   logging:
     level: INFO
     log_dir: logs

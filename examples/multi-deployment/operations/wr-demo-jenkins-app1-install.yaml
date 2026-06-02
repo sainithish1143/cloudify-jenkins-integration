@@ -1,9 +1,9 @@
 apiVersion: cloudify.windriver.com/v1
 kind: CloudifyOperation
 metadata:
-  name: app1-dev-install
+  name: wr-demo-jenkins-app1-install
 spec:
-  deployment_ref: deployments/app1-dev.yaml
+  deployment_ref: deployments/wr-demo-jenkins-app1.yaml
   workflow: install
   wait: true
   ensure_environment: true

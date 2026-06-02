@@ -1,5 +1,0 @@
-customer_name: "Customer B"
-application_name: "app2-service"
-environment: "dev"
-message: "App2 dev uses the same shared hello blueprint with App2-specific inputs"
-replicas: 4

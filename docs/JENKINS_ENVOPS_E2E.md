@@ -49,18 +49,18 @@ Examples:
 
 ```text
 ACTION=create-environment
-DEPLOYMENT_FILE=deployments/hello-dev.yaml
+DEPLOYMENT_FILE=deployments/wr-demo-jenkins-hello.yaml
 ```
 
 ```text
 ACTION=execute-workflow
-DEPLOYMENT_FILE=deployments/hello-dev.yaml
+DEPLOYMENT_FILE=deployments/wr-demo-jenkins-hello.yaml
 WORKFLOW=install
 ```
 
 ```text
 ACTION=execute-workflow
-DEPLOYMENT_FILE=deployments/hello-dev.yaml
+DEPLOYMENT_FILE=deployments/wr-demo-jenkins-hello.yaml
 WORKFLOW=execute_operation
 PARAMETERS_FILE=workflow-params/execute-configure.yaml
 INJECT_INPUTS_AS_OPERATION_KWARGS=true
@@ -81,17 +81,17 @@ This is the same commit-based mechanism as GitOps.
 Create/reconcile environment:
 
 ```bash
-echo "# jenkins env reconcile $(date)" >> deployments/hello-dev.yaml
-git add deployments/hello-dev.yaml
-git commit -m "Jenkins create hello dev Cloudify environment"
+echo "# jenkins env reconcile $(date)" >> deployments/wr-demo-jenkins-hello.yaml
+git add deployments/wr-demo-jenkins-hello.yaml
+git commit -m "Jenkins create wr-demo-jenkins-hello Cloudify environment"
 git push
 ```
 
 Run install:
 
 ```bash
-echo "# jenkins install $(date)" >> operations/hello-dev-install.yaml
-git add operations/hello-dev-install.yaml
+echo "# jenkins install $(date)" >> operations/wr-demo-jenkins-hello-install.yaml
+git add operations/wr-demo-jenkins-hello-install.yaml
 git commit -m "Jenkins run install workflow"
 git push
 ```
@@ -100,8 +100,8 @@ Update input and run configure:
 
 ```bash
 vi inputs/hello/dev.yaml
-echo "# jenkins configure $(date)" >> operations/hello-dev-configure.yaml
-git add inputs/hello/dev.yaml operations/hello-dev-configure.yaml
+echo "# jenkins configure $(date)" >> operations/wr-demo-jenkins-hello-configure.yaml
+git add inputs/hello/dev.yaml operations/wr-demo-jenkins-hello-configure.yaml
 git commit -m "Jenkins run configure with updated inputs"
 git push
 ```
@@ -109,8 +109,8 @@ git push
 Delete deployment:
 
 ```bash
-git rm deployments/hello-dev.yaml
-git commit -m "Jenkins remove hello dev Cloudify environment"
+git rm deployments/wr-demo-jenkins-hello.yaml
+git commit -m "Jenkins remove wr-demo-jenkins-hello Cloudify environment"
 git push
 ```
 

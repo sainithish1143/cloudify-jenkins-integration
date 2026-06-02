@@ -5,7 +5,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
     parameters {
-        string(name: 'DEPLOYMENT_FILE', defaultValue: 'deployments/hello-dev.yaml', description: 'Deployment desired-state YAML')
+        string(name: 'DEPLOYMENT_FILE', defaultValue: 'deployments/wr-demo-jenkins-hello.yaml', description: 'Deployment desired-state YAML')
         choice(name: 'ACTION', choices: ['create-environment', 'execute-workflow', 'delete-environment'], description: 'Cloudify action')
         string(name: 'WORKFLOW', defaultValue: 'install', description: 'Workflow for execute-workflow, e.g. install, execute_operation, heal, scale, custom workflow')
         string(name: 'PARAMETERS_FILE', defaultValue: '', description: 'Optional workflow parameters YAML')

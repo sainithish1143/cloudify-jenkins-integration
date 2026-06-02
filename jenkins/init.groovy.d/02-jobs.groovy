@@ -4,7 +4,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition
 
 Jenkins jenkins = Jenkins.get()
 
-String defaultDeployment = System.getenv('DEFAULT_DEPLOYMENT_FILE') ?: 'deployments/hello-dev.yaml'
+String defaultDeployment = System.getenv('DEFAULT_DEPLOYMENT_FILE') ?: 'deployments/wr-demo-jenkins-hello-dev.yaml'
 String defaultAction = System.getenv('DEFAULT_ACTION') ?: 'create-environment'
 String defaultWorkflow = System.getenv('DEFAULT_WORKFLOW') ?: 'install'
 String gitRepo = System.getenv('JENKINS_GIT_REPO_URL') ?: ''
