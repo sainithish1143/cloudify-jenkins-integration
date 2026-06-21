@@ -30,7 +30,7 @@ pipeline {
                         echo "=== Python Lint ==="
                         python3 -m ruff check scripts/ --output-format=concise
                         echo "=== YAML Validation ==="
-                        yamllint -d "{extends: relaxed, rules: {line-length: disable, trailing-spaces: {level: warning}, empty-lines: {level: warning}}}" deployments/ operations/ inputs/ workflow-params/
+                        python3 -m yamllint -d "{extends: relaxed, rules: {line-length: disable, trailing-spaces: {level: warning}, empty-lines: {level: warning}}}" deployments/ operations/ inputs/ workflow-params/
                     '''
                 }
             }
