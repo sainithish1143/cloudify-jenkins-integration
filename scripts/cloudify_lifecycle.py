@@ -11,6 +11,7 @@ Supported operations:
   delete_environment  - delete Cloudify deployment, optionally blueprint
 
 The implementation is intentionally idempotent and safe for repeated CI runs.
+Tuple removed
 """
 from __future__ import annotations
 
