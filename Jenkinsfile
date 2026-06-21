@@ -23,6 +23,63 @@ pipeline {
         stage('Install dependencies') {
             steps {
                 sh 'python3 -m pip install -r requirements.txt --break-system-packages || python3 -m pip install -r requirements.txt'
+                sh 'python3 -m pip install ruff yamllint pip-audit --break-system-packages || python3 -m pip install ruff yamllint pip-audit'
+            }
+        }
+        stage('Code Quality & Static Analysis') {
+            parallel {
+                stage('Python Lint') {
+                    steps {
+                        sh 'python3 -m ruff check scripts/ --output-format=text'
+                    }
+                }
+                stage('YAML Validation') {
+                    steps {
+                        sh 'yamllint -d "{extends: relaxed, rules: {line-length: disable, trailing-spaces: {level: warning}, empty-lines: {level: warning}}}" deployments/ operations/ inputs/ workflow-params/'
+                    }
+                }
+                stage('Shell Lint') {
+                    steps {
+                        sh 'shellcheck run-local.sh reset-jenkins-e2e.sh cleanup-jenkins-e2e.sh run-jenkins-e2e.sh || true'
+                    }
+                }
+            }
+        }
+        stage('Security Checks') {
+            parallel {
+                stage('Dependency Audit') {
+                    steps {
+                        sh 'pip-audit -r requirements.txt || true'
+                    }
+                }
+                stage('Secrets Scan') {
+                    steps {
+                        sh '''
+                            echo "Scanning for hardcoded secrets..."
+                            if grep -rn "password\\|secret\\|token\\|api_key" scripts/ --include="*.py" | grep -v "password=" | grep -v "#" | grep -v "CFY_PASSWORD" | grep -v "def \\|args\\|environ\\|getenv\\|credentials"; then
+                                echo "WARNING: Potential secrets found in code"
+                            else
+                                echo "PASS: No hardcoded secrets detected"
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Smoke Test - Conductor API') {
+            steps {
+                sh '''
+                    set -e
+                    echo "Testing Conductor API connectivity..."
+                    HTTP_CODE=$(curl -s -o /tmp/cfy-status.json -w "%{http_code}" -u "$CFY_USERNAME:$CFY_PASSWORD" -H "Tenant: $CFY_TENANT" "$CFY_MANAGER_URL/api/$CFY_API_VERSION/status" --insecure --connect-timeout 10)
+                    if [ "$HTTP_CODE" = "200" ]; then
+                        echo "PASS: Conductor API reachable (HTTP $HTTP_CODE)"
+                        cat /tmp/cfy-status.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Status: {d[\"status\"]}')"
+                    else
+                        echo "FAIL: Conductor API returned HTTP $HTTP_CODE"
+                        exit 1
+                    fi
+                '''
             }
         }
         stage('Reconcile Cloudify envops changes') {
