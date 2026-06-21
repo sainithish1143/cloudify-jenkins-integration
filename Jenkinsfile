@@ -40,7 +40,7 @@ pipeline {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                     sh '''
                         echo "=== Dependency Audit ==="
-                        pip-audit -r requirements.txt
+                        python3 -m pip_audit -r requirements.txt
                         echo "=== Secrets Scan ==="
                         if grep -rnE "password|secret|token" scripts/ --include="*.py" | grep -v "password=" | grep -v "#" | grep -vE "def |args|environ|getenv|credentials"; then
                             echo "WARNING: Potential secrets found"
