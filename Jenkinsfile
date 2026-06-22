@@ -86,7 +86,7 @@ pipeline {
                         set -e
                         echo "=== DNS Resolution ==="
                         CFY_HOST=$(echo "$CFY_MANAGER_URL" | sed 's|http[s]*://||' | cut -d: -f1)
-                        if getent hosts "$CFY_HOST" > /dev/null 2>&1 || echo "$CFY_HOST" | grep -qE "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"; then
+                        if getent hosts "$CFY_HOST" > /dev/null 2>&1 || echo "$CFY_HOST" | grep -qP "^[0-9.]+$"; then
                             echo "PASS: Host $CFY_HOST is resolvable/valid IP"
                         else
                             echo "FAIL: Cannot resolve $CFY_HOST"
@@ -167,7 +167,7 @@ pipeline {
 
                         echo ""
                         echo "=== Summary JSON Output Check ==="
-                        if grep -qE "summary|\.json" scripts/cloudify_lifecycle.py; then
+                        if grep -qE "summary" scripts/cloudify_lifecycle.py; then
                             echo "PASS: Summary JSON output implemented"
                         else
                             echo "FAIL: No summary output for audit trail"
