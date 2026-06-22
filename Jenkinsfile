@@ -74,10 +74,11 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                sh '''
-                    echo "=== Running Unit Tests with Coverage ==="
-                    python3 -m pytest tests/ -v --cov=scripts --cov-report=term-missing --cov-fail-under=20
-                '''
+                    sh '''
+                        echo "=== Running Unit Tests with Coverage ==="
+                        python3 -m pytest tests/ -v --cov=scripts --cov-report=term-missing --cov-fail-under=20
+                    '''
+                }
             }
         }
         stage('Infrastructure & Networking') {
