@@ -20,7 +20,7 @@ pipeline {
         stage('Install dependencies') {
             steps {
                 sh 'python3 -m pip install -r requirements.txt --break-system-packages 2>/dev/null || python3 -m pip install -r requirements.txt'
-                sh 'python3 -m pip install ruff yamllint pip-audit --break-system-packages 2>/dev/null || true'
+                sh 'python3 -m pip install ruff yamllint pip-audit pytest pytest-cov --break-system-packages 2>/dev/null || true'
             }
         }
         stage('Code Quality') {
@@ -50,6 +50,14 @@ pipeline {
                         fi
                     '''
                 }
+            }
+        }
+        stage('Unit Tests') {
+            steps {
+                sh '''
+                    echo "=== Running Unit Tests with Coverage ==="
+                    python3 -m pytest tests/ -v --cov=scripts --cov-report=term-missing --cov-fail-under=20
+                '''
             }
         }
         stage('Smoke Test') {
