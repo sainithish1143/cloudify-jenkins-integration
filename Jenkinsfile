@@ -176,7 +176,7 @@ pipeline {
 
                         echo ""
                         echo "=== Credential Masking Check ==="
-                        if grep -q "mask\|\\*\\*\\*" scripts/cloudify_lifecycle.py; then
+                        if grep -qE "mask" scripts/cloudify_lifecycle.py; then
                             echo "PASS: Credential masking implemented"
                         else
                             echo "FAIL: Credentials may be logged in plaintext"
