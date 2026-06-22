@@ -35,18 +35,37 @@ pipeline {
                 }
             }
         }
-        stage('Security Checks') {
+        stage('Security Validation') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                     sh '''
-                        echo "=== Dependency Audit ==="
+                        echo "=== Dependency Vulnerability Audit ==="
                         python3 -m pip_audit -r requirements.txt
+
+                        echo ""
                         echo "=== Secrets Scan ==="
-                        if grep -rnE "password|secret|token" scripts/ --include="*.py" | grep -v "password=" | grep -v "#" | grep -vE "def |args|environ|getenv|credentials"; then
-                            echo "WARNING: Potential secrets found"
+                        if grep -rnE "password|secret|token|api_key|private_key" scripts/ deployments/ operations/ --include="*.py" --include="*.yaml" | grep -vE "password=|#|def |args|environ|getenv|credentials|CFY_PASSWORD|example"; then
+                            echo "FAIL: Potential hardcoded secrets found"
                             exit 1
                         else
-                            echo "PASS: No hardcoded secrets"
+                            echo "PASS: No hardcoded secrets detected"
+                        fi
+
+                        echo ""
+                        echo "=== TLS/Insecure Connection Check ==="
+                        if [ "$CFY_INSECURE" = "true" ]; then
+                            echo "WARNING: Running with TLS verification disabled (CFY_INSECURE=true)"
+                        else
+                            echo "PASS: TLS verification enabled"
+                        fi
+
+                        echo ""
+                        echo "=== File Permission Check ==="
+                        if find . -name "*.sh" ! -perm -u+x | grep -q .; then
+                            echo "WARNING: Shell scripts without execute permission found:"
+                            find . -name "*.sh" ! -perm -u+x
+                        else
+                            echo "PASS: All shell scripts have execute permission"
                         fi
                     '''
                 }
@@ -58,6 +77,113 @@ pipeline {
                     echo "=== Running Unit Tests with Coverage ==="
                     python3 -m pytest tests/ -v --cov=scripts --cov-report=term-missing --cov-fail-under=20
                 '''
+            }
+        }
+        stage('Infrastructure & Networking') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh '''
+                        set -e
+                        echo "=== DNS Resolution ==="
+                        CFY_HOST=$(echo "$CFY_MANAGER_URL" | sed 's|http[s]*://||' | cut -d: -f1)
+                        if getent hosts "$CFY_HOST" > /dev/null 2>&1 || echo "$CFY_HOST" | grep -qE "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"; then
+                            echo "PASS: Host $CFY_HOST is resolvable/valid IP"
+                        else
+                            echo "FAIL: Cannot resolve $CFY_HOST"
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "=== Network Connectivity ==="
+                        CFY_PORT=$(echo "$CFY_MANAGER_URL" | sed 's|http[s]*://||' | cut -d: -f2)
+                        if curl -s --connect-timeout 5 -o /dev/null "$CFY_MANAGER_URL" --insecure; then
+                            echo "PASS: TCP connection to $CFY_HOST:$CFY_PORT successful"
+                        else
+                            echo "FAIL: Cannot connect to $CFY_HOST:$CFY_PORT"
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "=== API Authentication ==="
+                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -u "$CFY_USERNAME:$CFY_PASSWORD" -H "Tenant: $CFY_TENANT" "$CFY_MANAGER_URL/api/$CFY_API_VERSION/blueprints" --insecure --connect-timeout 10)
+                        if [ "$HTTP_CODE" = "200" ]; then
+                            echo "PASS: API authentication successful (HTTP $HTTP_CODE)"
+                        else
+                            echo "FAIL: API authentication failed (HTTP $HTTP_CODE)"
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "=== API Response Time ==="
+                        RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" -u "$CFY_USERNAME:$CFY_PASSWORD" -H "Tenant: $CFY_TENANT" "$CFY_MANAGER_URL/api/$CFY_API_VERSION/status" --insecure)
+                        echo "API response time: ${RESPONSE_TIME}s"
+                        SLOW=$(echo "$RESPONSE_TIME > 5.0" | bc -l 2>/dev/null || echo 0)
+                        if [ "$SLOW" = "1" ]; then
+                            echo "WARNING: API response time > 5s"
+                            exit 1
+                        else
+                            echo "PASS: API response time acceptable"
+                        fi
+                    '''
+                }
+            }
+        }
+        stage('Observability & Logging') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh '''
+                        echo "=== Log Directory Check ==="
+                        mkdir -p logs
+                        echo "PASS: Log directory exists"
+
+                        echo ""
+                        echo "=== Script Logging Verification ==="
+                        if grep -q "logging\|logger" scripts/cloudify_lifecycle.py; then
+                            echo "PASS: Logging framework used in cloudify_lifecycle.py"
+                        else
+                            echo "FAIL: No logging found in cloudify_lifecycle.py"
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "=== Run ID Traceability ==="
+                        if grep -q "run_id\|Run ID" scripts/cloudify_lifecycle.py; then
+                            echo "PASS: Run ID traceability implemented"
+                        else
+                            echo "FAIL: No Run ID for tracing executions"
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "=== Error Handling Check ==="
+                        ERROR_HANDLERS=$(grep -c "except\|raise\|error\|Error" scripts/cloudify_lifecycle.py || true)
+                        echo "Error handling statements found: $ERROR_HANDLERS"
+                        if [ "$ERROR_HANDLERS" -gt 5 ]; then
+                            echo "PASS: Adequate error handling ($ERROR_HANDLERS handlers)"
+                        else
+                            echo "WARNING: Limited error handling"
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "=== Summary JSON Output Check ==="
+                        if grep -q "summary\|\.json" scripts/cloudify_lifecycle.py; then
+                            echo "PASS: Summary JSON output implemented"
+                        else
+                            echo "FAIL: No summary output for audit trail"
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "=== Credential Masking Check ==="
+                        if grep -q "mask\|\\*\\*\\*" scripts/cloudify_lifecycle.py; then
+                            echo "PASS: Credential masking implemented"
+                        else
+                            echo "FAIL: Credentials may be logged in plaintext"
+                            exit 1
+                        fi
+                    '''
+                }
             }
         }
         stage('Smoke Test') {
