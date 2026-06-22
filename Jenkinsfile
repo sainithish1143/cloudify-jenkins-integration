@@ -138,7 +138,7 @@ pipeline {
 
                         echo ""
                         echo "=== Script Logging Verification ==="
-                        if grep -q "logging\|logger" scripts/cloudify_lifecycle.py; then
+                        if grep -qE "logging|logger" scripts/cloudify_lifecycle.py; then
                             echo "PASS: Logging framework used in cloudify_lifecycle.py"
                         else
                             echo "FAIL: No logging found in cloudify_lifecycle.py"
@@ -147,7 +147,7 @@ pipeline {
 
                         echo ""
                         echo "=== Run ID Traceability ==="
-                        if grep -q "run_id\|Run ID" scripts/cloudify_lifecycle.py; then
+                        if grep -qE "run_id|Run ID" scripts/cloudify_lifecycle.py; then
                             echo "PASS: Run ID traceability implemented"
                         else
                             echo "FAIL: No Run ID for tracing executions"
@@ -156,7 +156,7 @@ pipeline {
 
                         echo ""
                         echo "=== Error Handling Check ==="
-                        ERROR_HANDLERS=$(grep -c "except\|raise\|error\|Error" scripts/cloudify_lifecycle.py || true)
+                        ERROR_HANDLERS=$(grep -cE "except|raise|error|Error" scripts/cloudify_lifecycle.py || true)
                         echo "Error handling statements found: $ERROR_HANDLERS"
                         if [ "$ERROR_HANDLERS" -gt 5 ]; then
                             echo "PASS: Adequate error handling ($ERROR_HANDLERS handlers)"
@@ -167,7 +167,7 @@ pipeline {
 
                         echo ""
                         echo "=== Summary JSON Output Check ==="
-                        if grep -q "summary\|\.json" scripts/cloudify_lifecycle.py; then
+                        if grep -qE "summary|\.json" scripts/cloudify_lifecycle.py; then
                             echo "PASS: Summary JSON output implemented"
                         else
                             echo "FAIL: No summary output for audit trail"
