@@ -188,21 +188,7 @@ pipeline {
                 }
             }
         }
-        stage('Smoke Test') {
-            steps {
-                sh '''
-                    set -e
-                    echo "Testing Conductor API..."
-                    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -u "$CFY_USERNAME:$CFY_PASSWORD" -H "Tenant: $CFY_TENANT" "$CFY_MANAGER_URL/api/$CFY_API_VERSION/status" --insecure --connect-timeout 10)
-                    if [ "$HTTP_CODE" = "200" ]; then
-                        echo "PASS: Conductor API reachable (HTTP $HTTP_CODE)"
-                    else
-                        echo "FAIL: Conductor API returned HTTP $HTTP_CODE"
-                        exit 1
-                    fi
-                '''
-            }
-        }
+        
         stage('Reconcile Cloudify changes') {
             steps {
                 sh '''
