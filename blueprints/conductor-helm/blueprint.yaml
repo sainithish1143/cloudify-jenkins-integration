@@ -1,0 +1,93 @@
+tosca_definitions_version: cloudify_dsl_1_5
+
+description: >
+  WRC Helm Deployment Blueprint - CI/CD Integration.
+  Manages Wind River Conductor Helm chart lifecycle through Conductor workflows.
+  Supports install, upgrade, rollback, and uninstall operations.
+
+imports:
+  - cloudify/types/types.yaml
+
+inputs:
+  release_name:
+    type: string
+    description: Helm release name
+    default: "cloudify-services"
+
+  namespace:
+    type: string
+    description: Kubernetes namespace for deployment
+    default: "default"
+
+  chart_version:
+    type: string
+    description: WRC Helm chart version
+    default: "26.09"
+
+  chart_repo:
+    type: string
+    description: Helm chart repository URL
+    default: "gitlab.us.devstar.cloud/cgcs/github.com.cloudify-cosmo.cloudify-helm"
+
+  override_values:
+    type: string
+    description: Override values file path
+    default: "cloudify-services/override-values.yaml"
+
+  image_registry:
+    type: string
+    description: Container image registry
+    default: "device.registry.us.devstar.cloud/conductor"
+
+  replica_count:
+    type: integer
+    description: Number of replicas for core services
+    default: 1
+
+node_types:
+  windriver.nodes.HelmRelease:
+    derived_from: cloudify.nodes.Root
+    properties:
+      release_name:
+        type: string
+      namespace:
+        type: string
+      chart_version:
+        type: string
+      chart_repo:
+        type: string
+      override_values:
+        type: string
+      image_registry:
+        type: string
+      replica_count:
+        type: integer
+
+node_templates:
+  wrc_helm_release:
+    type: windriver.nodes.HelmRelease
+    properties:
+      release_name: { get_input: release_name }
+      namespace: { get_input: namespace }
+      chart_version: { get_input: chart_version }
+      chart_repo: { get_input: chart_repo }
+      override_values: { get_input: override_values }
+      image_registry: { get_input: image_registry }
+      replica_count: { get_input: replica_count }
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: scripts/helm_lifecycle.py
+          executor: central_deployment_agent
+        configure:
+          implementation: scripts/helm_lifecycle.py
+          executor: central_deployment_agent
+        start:
+          implementation: scripts/helm_lifecycle.py
+          executor: central_deployment_agent
+        stop:
+          implementation: scripts/helm_lifecycle.py
+          executor: central_deployment_agent
+        delete:
+          implementation: scripts/helm_lifecycle.py
+          executor: central_deployment_agent
