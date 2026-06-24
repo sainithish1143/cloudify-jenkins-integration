@@ -1,0 +1,89 @@
+tosca_definitions_version: cloudify_dsl_1_5
+
+description: >
+  WRCP System Enrollment Blueprint - CI/CD Integration Demo.
+  Simulates enrolling a Wind River Cloud Platform system through Conductor.
+  This blueprint demonstrates the full lifecycle: enroll -> configure -> verify -> unenroll.
+
+imports:
+  - cloudify/types/types.yaml
+
+inputs:
+  auth_url:
+    type: string
+    description: >
+      The authorization URL of the Cloud Platform.
+      Example: http://10.0.2.2:5000/v3
+    default: "http://192.168.1.100:5000/v3"
+
+  region_name:
+    type: string
+    description: >
+      The region name or subcloud name to enroll.
+    default: "RegionOne"
+
+  system_type:
+    type: string
+    description: >
+      Type of system: system-controller or subcloud
+    default: "system-controller"
+
+  admin_username:
+    type: string
+    description: Admin username for WRCP authentication.
+    default: "admin"
+
+  system_name:
+    type: string
+    description: Display name for the enrolled system.
+    default: "wrcp-lab-system-01"
+
+  upgrade_policy:
+    type: string
+    description: Upgrade policy to apply after enrollment.
+    default: "rolling-upgrade"
+
+node_types:
+  windriver.nodes.WRCPSystem:
+    derived_from: cloudify.nodes.Root
+    properties:
+      auth_url:
+        type: string
+      region_name:
+        type: string
+      system_type:
+        type: string
+      admin_username:
+        type: string
+      system_name:
+        type: string
+      upgrade_policy:
+        type: string
+
+node_templates:
+  wrcp_system:
+    type: windriver.nodes.WRCPSystem
+    properties:
+      auth_url: { get_input: auth_url }
+      region_name: { get_input: region_name }
+      system_type: { get_input: system_type }
+      admin_username: { get_input: admin_username }
+      system_name: { get_input: system_name }
+      upgrade_policy: { get_input: upgrade_policy }
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: scripts/enrollment.py
+          executor: central_deployment_agent
+        configure:
+          implementation: scripts/enrollment.py
+          executor: central_deployment_agent
+        start:
+          implementation: scripts/enrollment.py
+          executor: central_deployment_agent
+        stop:
+          implementation: scripts/enrollment.py
+          executor: central_deployment_agent
+        delete:
+          implementation: scripts/enrollment.py
+          executor: central_deployment_agent
