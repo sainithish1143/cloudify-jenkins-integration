@@ -1,0 +1,6 @@
+auth_url: "http://10.64.34.114:5000/v3"
+region_name: "RegionOne"
+system_type: "system-controller"
+admin_username: "admin"
+system_name: "wrcp-lab-std-024"
+upgrade_policy: "rolling-upgrade"
