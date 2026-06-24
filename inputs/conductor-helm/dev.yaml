@@ -1,0 +1,7 @@
+release_name: "cloudify-services"
+namespace: "default"
+chart_version: "26.09"
+chart_repo: "gitlab.us.devstar.cloud/cgcs/github.com.cloudify-cosmo.cloudify-helm"
+override_values: "cloudify-services/override-values.yaml"
+image_registry: "device.registry.us.devstar.cloud/conductor"
+replica_count: 1
