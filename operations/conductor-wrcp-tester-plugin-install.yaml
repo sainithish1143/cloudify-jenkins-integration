@@ -1,0 +1,7 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyOperation
+metadata:
+  name: conductor-wrcp-tester-plugin-install
+spec:
+  deployment_id: conductor-wrcp-tester-plugin
+  workflow: install
