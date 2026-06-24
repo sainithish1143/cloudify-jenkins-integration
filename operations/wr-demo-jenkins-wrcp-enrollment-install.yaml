@@ -1,0 +1,7 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyOperation
+metadata:
+  name: wr-demo-jenkins-wrcp-enrollment-install
+spec:
+  deployment_id: wr-demo-jenkins-wrcp-enrollment
+  workflow: install
