@@ -1,0 +1,13 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyOperation
+metadata:
+  name: conductor-wrcp-tester-plugin-configure
+spec:
+  deployment_id: conductor-wrcp-tester-plugin
+  workflow: execute_operation
+  parameters:
+    operation: cloudify.interfaces.lifecycle.configure
+    node_ids:
+      - wrcp_system
+    run_by_dependency_order: true
+    allow_kwargs_override: true
