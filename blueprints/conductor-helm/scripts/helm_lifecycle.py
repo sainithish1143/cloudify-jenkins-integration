@@ -1,65 +1,132 @@
 #!/usr/bin/env python3
 """
-WRC Helm Deployment Lifecycle - CI/CD Integration.
-Simulates Helm chart operations for Wind River Conductor deployment.
+Real Kubernetes Deployment via Conductor CI/CD Pipeline.
+Deploys an nginx application to the cluster using the K8s API.
 """
+import json
+import os
+import time
+import requests
 from cloudify import ctx
 from cloudify.state import ctx_parameters as inputs
 
 operation = ctx.operation.name.split('.')[-1]
 props = ctx.node.properties
 
+# K8s API config from service account
+TOKEN = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read()
+CA = '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
+API = 'https://kubernetes.default.svc'
+HEADERS = {'Authorization': f'Bearer {TOKEN}', 'Content-Type': 'application/json'}
+NAMESPACE = props['namespace']
+
 ctx.logger.info("=" * 60)
-ctx.logger.info(f"WRC Helm Operation: {operation}")
+ctx.logger.info(f"Conductor Helm Operation: {operation}")
+ctx.logger.info(f"Release: {props['release_name']} | Namespace: {NAMESPACE}")
+ctx.logger.info(f"Chart: {props['chart_repo']} v{props['chart_version']}")
+ctx.logger.info(f"Registry: {props['image_registry']}")
 ctx.logger.info("=" * 60)
-ctx.logger.info(f"Release Name:    {props['release_name']}")
-ctx.logger.info(f"Namespace:       {props['namespace']}")
-ctx.logger.info(f"Chart Version:   {props['chart_version']}")
-ctx.logger.info(f"Chart Repo:      {props['chart_repo']}")
-ctx.logger.info(f"Override Values:  {props['override_values']}")
-ctx.logger.info(f"Image Registry:  {props['image_registry']}")
-ctx.logger.info(f"Replica Count:   {props['replica_count']}")
-ctx.logger.info("-" * 60)
+
+DEPLOY_NAME = props['release_name']
+REPLICAS = props['replica_count']
+
+
+def k8s_request(method, path, data=None):
+    url = f"{API}{path}"
+    r = requests.request(method, url, headers=HEADERS, verify=CA, json=data)
+    return r
+
 
 if operation == 'create':
-    ctx.logger.info(f"[HELM] Pulling chart from {props['chart_repo']}...")
-    ctx.logger.info(f"[HELM] Chart version: {props['chart_version']}")
-    ctx.logger.info(f"[HELM] Resolving dependencies (seaweedfs, postgresql, rabbitmq, prometheus)...")
-    ctx.logger.info(f"[HELM] helm install {props['release_name']} ./ -f {props['override_values']} --namespace {props['namespace']} --dependency-update")
-    ctx.logger.info(f"[HELM] Deploying services from registry: {props['image_registry']}")
-    ctx.logger.info(f"[HELM] Services deploying: rest-service, api-service, mgmtworker, composer-backend, stage-frontend, nginx...")
-    ctx.logger.info(f"[HELM] Release '{props['release_name']}' installed successfully in namespace '{props['namespace']}'")
+    ctx.logger.info(f"[DEPLOY] Creating namespace '{NAMESPACE}' if not exists...")
+    ns_body = {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": NAMESPACE}}
+    r = k8s_request("POST", "/api/v1/namespaces", ns_body)
+    ctx.logger.info(f"[DEPLOY] Namespace: {r.status_code} ({'created' if r.status_code == 201 else 'exists'})")
+
+    ctx.logger.info(f"[DEPLOY] Creating Deployment '{DEPLOY_NAME}' with {REPLICAS} replica(s)...")
+    deployment = {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {"name": DEPLOY_NAME, "namespace": NAMESPACE},
+        "spec": {
+            "replicas": REPLICAS,
+            "selector": {"matchLabels": {"app": DEPLOY_NAME}},
+            "template": {
+                "metadata": {"labels": {"app": DEPLOY_NAME}},
+                "spec": {
+                    "containers": [{
+                        "name": "nginx",
+                        "image": "nginx:1.27-alpine",
+                        "ports": [{"containerPort": 80}]
+                    }]
+                }
+            }
+        }
+    }
+    r = k8s_request("POST", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments", deployment)
+    if r.status_code in (200, 201):
+        ctx.logger.info(f"[DEPLOY] Deployment created successfully (HTTP {r.status_code})")
+    else:
+        ctx.logger.info(f"[DEPLOY] Response: {r.status_code} - {r.text[:200]}")
+        if r.status_code == 409:
+            ctx.logger.info("[DEPLOY] Deployment already exists, continuing.")
+        else:
+            raise Exception(f"Failed to create deployment: {r.status_code}")
+
+    ctx.logger.info(f"[DEPLOY] Creating Service '{DEPLOY_NAME}-svc'...")
+    svc = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": {"name": f"{DEPLOY_NAME}-svc", "namespace": NAMESPACE},
+        "spec": {
+            "selector": {"app": DEPLOY_NAME},
+            "ports": [{"port": 80, "targetPort": 80}],
+            "type": "ClusterIP"
+        }
+    }
+    r = k8s_request("POST", f"/api/v1/namespaces/{NAMESPACE}/services", svc)
+    ctx.logger.info(f"[DEPLOY] Service: {r.status_code} ({'created' if r.status_code == 201 else 'exists'})")
 
 elif operation == 'configure':
-    ctx.logger.info(f"[HELM] helm upgrade {props['release_name']} ./ -f {props['override_values']} --namespace {props['namespace']}")
-    ctx.logger.info(f"[HELM] Applying configuration updates...")
-    ctx.logger.info(f"[HELM] Updating image registry to: {props['image_registry']}")
-    ctx.logger.info(f"[HELM] Setting replica count: {props['replica_count']}")
-    ctx.logger.info(f"[HELM] Waiting for pods to be ready...")
-    ctx.logger.info(f"[HELM] All pods running: rest-service (1/1), api-service (1/1), mgmtworker (1/1), postgresql (2/2)")
-    ctx.logger.info(f"[HELM] Upgrade completed successfully.")
+    ctx.logger.info(f"[UPGRADE] Scaling '{DEPLOY_NAME}' to {REPLICAS} replicas...")
+    patch = {"spec": {"replicas": REPLICAS}}
+    r = k8s_request("PATCH", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{DEPLOY_NAME}", patch)
+    HEADERS['Content-Type'] = 'application/strategic-merge-patch+json'
+    ctx.logger.info(f"[UPGRADE] Scale result: {r.status_code}")
     if inputs:
-        ctx.logger.info(f"[HELM] CI/CD provided inputs: {dict(inputs)}")
+        ctx.logger.info(f"[UPGRADE] CI/CD provided inputs: {dict(inputs)}")
 
 elif operation == 'start':
-    ctx.logger.info(f"[HELM] Verifying deployment health...")
-    ctx.logger.info(f"[HELM] kubectl get pods -n {props['namespace']} | grep {props['release_name']}")
-    ctx.logger.info(f"[HELM] All 30 pods in Running state")
-    ctx.logger.info(f"[HELM] Ingress configured: cloudify-services.local -> 192.168.49.2:80")
-    ctx.logger.info(f"[HELM] Conductor API status: OK")
-    ctx.logger.info(f"[HELM] Deployment verification passed.")
+    ctx.logger.info(f"[VERIFY] Checking deployment '{DEPLOY_NAME}' status...")
+    for i in range(12):
+        r = k8s_request("GET", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{DEPLOY_NAME}")
+        if r.status_code == 200:
+            status = r.json().get('status', {})
+            ready = status.get('readyReplicas', 0)
+            desired = status.get('replicas', REPLICAS)
+            ctx.logger.info(f"[VERIFY] Pods ready: {ready}/{desired}")
+            if ready >= desired:
+                ctx.logger.info(f"[VERIFY] All pods are running. Deployment healthy.")
+                break
+        time.sleep(5)
+    else:
+        ctx.logger.info("[VERIFY] WARNING: Timeout waiting for pods, continuing anyway.")
 
 elif operation == 'stop':
-    ctx.logger.info(f"[HELM] Preparing to uninstall release '{props['release_name']}'...")
-    ctx.logger.info(f"[HELM] Draining workloads...")
-    ctx.logger.info(f"[HELM] Scaling down replicas to 0...")
+    ctx.logger.info(f"[SCALE-DOWN] Scaling '{DEPLOY_NAME}' to 0 replicas...")
+    patch = {"spec": {"replicas": 0}}
+    r = k8s_request("PATCH", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{DEPLOY_NAME}", patch)
+    ctx.logger.info(f"[SCALE-DOWN] Result: {r.status_code}")
 
 elif operation == 'delete':
-    ctx.logger.info(f"[HELM] helm uninstall {props['release_name']} --namespace {props['namespace']}")
-    ctx.logger.info(f"[HELM] Deleting PVCs: data-postgresql-0, data-rabbitmq-0, data-seaweedfs-*...")
-    ctx.logger.info(f"[HELM] Cleaning up secrets: manager-security, wind-river-conductor-certs...")
-    ctx.logger.info(f"[HELM] Release '{props['release_name']}' uninstalled. Namespace '{props['namespace']}' cleaned.")
+    ctx.logger.info(f"[DELETE] Removing deployment '{DEPLOY_NAME}'...")
+    r = k8s_request("DELETE", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{DEPLOY_NAME}")
+    ctx.logger.info(f"[DELETE] Deployment: {r.status_code}")
+    ctx.logger.info(f"[DELETE] Removing service '{DEPLOY_NAME}-svc'...")
+    r = k8s_request("DELETE", f"/api/v1/namespaces/{NAMESPACE}/services/{DEPLOY_NAME}-svc")
+    ctx.logger.info(f"[DELETE] Service: {r.status_code}")
+    ctx.logger.info(f"[DELETE] Cleanup complete.")
 
 ctx.logger.info("=" * 60)
-ctx.logger.info(f"Helm operation '{operation}' completed successfully.")
+ctx.logger.info(f"Operation '{operation}' completed.")
 ctx.logger.info("=" * 60)
