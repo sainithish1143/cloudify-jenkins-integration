@@ -1,0 +1,35 @@
+# ============================================================
+# WRCP System Enrollment Inputs
+# ============================================================
+# IMPORTANT: Update these values with your actual WRCP lab details
+# before triggering the pipeline.
+#
+# Prerequisites on the target WRC:
+#   1. conductor-wrcp-plugin wagon must be uploaded
+#   2. Secrets must be created:
+#      - wrcp_username (value: admin username for WRCP)
+#      - wrcp_api_key (value: admin password for WRCP)
+#      - wrcp_cacert (value: CA cert content, or empty string for http)
+#      - wrcp_ssh_username (value: sysadmin)
+#      - wrcp_ssh_password (value: SSH password for sysadmin)
+# ============================================================
+
+# The Keystone auth URL of the WRCP system controller
+# Format: http://<IP>:5000/v3 or https://[<IPv6>]:5000/v3
+auth_url: "http://<WRCP_SYSTEM_CONTROLLER_IP>:5000/v3"
+
+# Secret names in Conductor (must be pre-created)
+user_secret: "wrcp_username"
+password_secret: "wrcp_api_key"
+cacert_secret: "wrcp_cacert"
+ssh_username: "wrcp_ssh_username"
+ssh_password: "wrcp_ssh_password"
+
+# RegionOne for System Controller, subcloud name for subclouds
+region_name: "RegionOne"
+
+# Set to true if using HTTP or self-signed certs
+insecure: true
+
+# SSH port (default 22)
+ssh_port: 22
