@@ -7,7 +7,7 @@ description: >
 
 imports:
   - cloudify/types/types.yaml
-  - plugin:conductor-wrcp-plugin?version===26.3.0
+  - plugin:conductor-wrcp-plugin?version===26.10.0
 
 blueprint_labels:
   csys-obj-type:
