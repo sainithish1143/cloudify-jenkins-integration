@@ -1,0 +1,37 @@
+apiVersion: cloudify.windriver.com/v1
+kind: CloudifyDeployment
+metadata:
+  name: conductor-wrcp-plugin
+  environment: lab
+  owner: platform-team
+spec:
+  enabled: true
+  manager:
+    tenant: default_tenant
+  blueprint:
+    id: conductor-wrcp-plugin-bp
+    source: blueprints/conductor-wrcp-plugin
+    application_file: blueprint.yaml
+  deployment:
+    id: conductor-wrcp-plugin
+    inputs:
+    - inputs/conductor-wrcp-plugin/lab.yaml
+    inline_inputs: {}
+  policies:
+    create_only_on_deployment_commit: true
+    deletion_policy: delete_only
+    uninstall_workflow: ''
+    delete_blueprint_on_delete: false
+    force_recreate_environment: false
+    force_upload_blueprint: false
+    recreate_uninstall_first: false
+    wait_for_existing_execution: true
+  execution:
+    request_timeout_sec: 60
+    execution_timeout_sec: 7200
+    poll_interval_sec: 15
+    retry_count: 3
+    retry_backoff_sec: 10
+  logging:
+    level: INFO
+    log_dir: logs
