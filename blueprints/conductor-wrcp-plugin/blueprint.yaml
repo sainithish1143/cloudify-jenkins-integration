@@ -1,0 +1,163 @@
+tosca_definitions_version: cloudify_dsl_1_4
+
+description: >
+  This blueprint enrolls a Wind River Cloud Platform system into Conductor.
+  It discovers the System Controller and its subclouds, registers them in
+  the Conductor inventory, and exposes Kubernetes and OpenStack endpoints.
+
+imports:
+  - cloudify/types/types.yaml
+  - plugin:conductor-wrcp-plugin?version===26.3.0
+
+blueprint_labels:
+  csys-obj-type:
+    values:
+    - environment
+  csys-env-type:
+    values:
+    - wrcp
+
+labels:
+  csys-obj-type:
+    values:
+     - environment
+  csys-env-type:
+    values: []
+  csys-obj-parent:
+    values: []
+  csys-location-name:
+    values: []
+  csys-location-lat:
+    values: []
+  csys-location-long:
+    values: []
+  csys-wrcp-services:
+    values: []
+
+inputs:
+  auth_url:
+    type: string
+    description: >
+      The authorization URL of the Cloud Platform.
+      Example: http://10.0.2.2:5000/v3
+
+  user_secret:
+    type: string
+    description: Secret name containing the admin username for WRCP authentication.
+    default: wrcp_username
+
+  password_secret:
+    type: string
+    description: Secret name containing the admin password for WRCP authentication.
+    default: wrcp_api_key
+
+  region_name:
+    type: string
+    description: >
+      RegionOne for System Controllers.
+      Subcloud name for subclouds.
+    default: RegionOne
+
+  cacert_secret:
+    type: string
+    description: Secret name containing the root CA certificate for WRCP endpoint.
+    default: wrcp_cacert
+
+  insecure:
+    type: boolean
+    description: Disable certificate validation of the WRCP endpoint.
+    default: false
+
+  ssh_port:
+    type: integer
+    description: SSH port for system access.
+    default: 22
+
+  ssh_username:
+    type: string
+    description: Secret name containing SSH username for the system.
+    default: wrcp_ssh_username
+
+  ssh_password:
+    type: string
+    description: Secret name containing SSH password for the system.
+    default: wrcp_ssh_password
+
+dsl_definitions:
+  client_config: &client_config
+    auth_url: { get_input: auth_url }
+    username: { get_secret: { get_input: user_secret } }
+    api_key: { get_secret: { get_input: password_secret } }
+    project_name: admin
+    user_domain_name: Default
+    project_domain_name: Default
+    region_name: { get_input: region_name }
+    insecure: { get_input: insecure }
+    cacert: { get_secret: { get_input: cacert_secret } }
+    ssh_port: { get_input: ssh_port }
+    fabric_env:
+      user: { get_secret: { get_input: ssh_username } }
+      password: { get_secret: { get_input: ssh_password } }
+      connect_kwargs:
+          allow_agent: False
+          look_for_keys: False
+
+node_templates:
+  wrcp:
+    type: cloudify.nodes.wrcp.WRCP
+    properties:
+      client_config: *client_config
+
+  infrastructure:
+    type: windriver.nodes.wrcp.Infrastructure
+    properties:
+      client_config: *client_config
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: wrcp
+
+  storage:
+    type: windriver.nodes.wrcp.Storage
+    properties:
+      client_config: *client_config
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: infrastructure
+
+  kubernetes:
+    type: windriver.nodes.wrcp.Kubernetes
+    properties:
+      client_config: *client_config
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: storage
+
+capabilities:
+  wrcp-ip:
+    description: The Cloud Platform endpoint IP.
+    value: { get_input: auth_url }
+  wrcp-user:
+    description: The secret containing the Cloud Platform username.
+    value: { get_input: user_secret }
+  wrcp-password:
+    description: The secret containing the Cloud Platform password.
+    value: { get_input: password_secret }
+  wrcp-cacert:
+    description: The secret containing the Cloud Platform root CA certificate.
+    value: { get_input: cacert_secret }
+  wrcp-insecure:
+    description: A boolean for insecure handling of HTTPS.
+    value: { get_input: insecure }
+  wrcp-region-name:
+    description: The Cloud Platform region name.
+    value: { get_input: region_name }
+
+workflows:
+  install_wrcp:
+    mapping: wrcp_plugin.system_installer.cloudify_wrcp.workflows.workflows_bootstrap.install_wrcp
+    availability_rules:
+      available: false
+  installation_prestage:
+    mapping: wrcp_plugin.system_installer.cloudify_wrcp.workflows.prestage.initiate_prestage
+    availability_rules:
+      available: false
