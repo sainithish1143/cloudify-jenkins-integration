@@ -16,14 +16,14 @@
 
 # The Keystone auth URL of the WRCP system controller
 # Format: http://<IP>:5000/v3 or https://[<IPv6>]:5000/v3
-auth_url: "http://<WRCP_SYSTEM_CONTROLLER_IP>:5000/v3"
+auth_url: "https://[2620:10a:a001:d41::1177]:5000/v3"
 
 # Secret names in Conductor (must be pre-created)
-user_secret: "wrcp_username"
-password_secret: "wrcp_api_key"
+user_secret: "admin"
+password_secret: "Li69nux*1234"
 cacert_secret: "wrcp_cacert"
-ssh_username: "wrcp_ssh_username"
-ssh_password: "wrcp_ssh_password"
+ssh_username: "sysadmin"
+ssh_password: "Li69nux*1234"
 
 # RegionOne for System Controller, subcloud name for subclouds
 region_name: "RegionOne"
