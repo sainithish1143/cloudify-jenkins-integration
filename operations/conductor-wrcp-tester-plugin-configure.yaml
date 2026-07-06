@@ -3,7 +3,7 @@ kind: CloudifyOperation
 metadata:
   name: conductor-wrcp-tester-plugin-configure
 spec:
-  deployment_id: conductor-wrcp-tester-plugin
+  deployment_ref: conductor-wrcp-tester-plugin
   workflow: execute_operation
   parameters:
     operation: cloudify.interfaces.lifecycle.configure
