@@ -3,5 +3,5 @@ kind: CloudifyOperation
 metadata:
   name: conductor-wrcp-plugin-install
 spec:
-  deployment_id: conductor-wrcp-plugin
+  deployment_ref: conductor-wrcp-plugin
   workflow: install
