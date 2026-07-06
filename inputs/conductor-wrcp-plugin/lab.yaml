@@ -1,7 +1,7 @@
 # WRCP System Enrollment Inputs
 # Secrets must be pre-created on the target WRC
 
-auth_url: "https://[2620:10a:a001:d41::1177]:5000/v3"
+auth_url: "https://128.224.49.177:5000/v3"
 user_secret: "wrcp_username"
 password_secret: "wrcp_api_key"
 cacert_secret: "wrcp_cacert"
