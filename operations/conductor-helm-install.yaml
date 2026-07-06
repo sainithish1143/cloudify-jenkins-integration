@@ -3,5 +3,5 @@ kind: CloudifyOperation
 metadata:
   name: conductor-helm-install
 spec:
-  deployment_id: conductor-helm
+  deployment_ref: conductor-helm
   workflow: install
