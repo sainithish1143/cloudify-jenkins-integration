@@ -3,6 +3,5 @@ kind: CloudifyOperation
 metadata:
   name: conductor-wrcp-tester-plugin-install
 spec:
-  deployment_id: conductor-wrcp-tester-plugin
+  deployment_ref: conductor-wrcp-tester-plugin
   workflow: install
-# trigger install 1782280568
