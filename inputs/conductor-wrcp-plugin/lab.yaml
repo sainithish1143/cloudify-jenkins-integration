@@ -1,5 +1,4 @@
 # WRCP System Enrollment Inputs
-# Secrets must be pre-created on the target WRC "https://128.224.49.177:5000/v3"
 
 auth_url: "https://128.224.54.23:5000/v3"
 user_secret: "wrcp_username"
@@ -7,6 +6,6 @@ password_secret: "wrcp_api_key"
 cacert_secret: "wrcp_cacert"
 ssh_username: "wrcp_ssh_username"
 ssh_password: "wrcp_ssh_password"
-region_name: "RegionOne"
+region_name: "002b91e735cc49fa8e189f26dc3065a2"
 insecure: true
 ssh_port: 22
