@@ -1,11 +1,12 @@
-# WRCP System Enrollment Inputs
+# DC-017 Subcloud1 - WRCP System Enrollment
+# System: duplex, WRCP 26.10, region c50eacd61c154d919e39f47b980b9537
 
-auth_url: "https://128.224.54.23:5000/v3"
+auth_url: "https://10.64.12.239:5000/v3"
 user_secret: "wrcp_username"
 password_secret: "wrcp_api_key"
 cacert_secret: "wrcp_cacert"
 ssh_username: "wrcp_ssh_username"
 ssh_password: "wrcp_ssh_password"
-region_name: "002b91e735cc49fa8e189f26dc3065a2"
+region_name: "c50eacd61c154d919e39f47b980b9537"
 insecure: true
 ssh_port: 22
