@@ -1,0 +1,34 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - cloudify/types/types.yaml
+  - plugin:cloudify-helm-plugin
+
+blueprint_labels:
+  csys-obj-type:
+    values:
+      - service
+
+labels:
+  csys-obj-parent:
+    values: []
+
+node_templates:
+  helm_install:
+    type: cloudify.nodes.helm.Binary
+    properties:
+      use_existing_resource: false
+      installation_source: https://get.helm.sh/helm-v3.12.3-linux-amd64.tar.gz
+capabilities:
+  HELM_CACHE_HOME:
+    description: The ansible environment
+    value: { get_attribute: [helm_install, HELM_CACHE_HOME] }
+  HELM_CONFIG_HOME:
+    description: The ansible environment
+    value: { get_attribute: [helm_install, HELM_CONFIG_HOME] }
+  HELM_DATA_HOME:
+    description: The ansible environment
+    value: { get_attribute: [helm_install, HELM_DATA_HOME] }
+  executable_path:
+    description: The ansible environment
+    value: { get_attribute: [helm_install, executable_path] }
